@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web3 Health Agent - Dashboard</title>
+  <style>
+    :root {
+      --bg: #0a0e1a;
+      --surface: #111827;
+      --surface-hover: #1a2332;
+      --border: #1e293b;
+      --primary: #3b82f6;
+      --primary-glow: rgba(59, 130, 246, 0.15);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      margin-bottom: 24px;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--primary), #8b5cf6);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .logo-text {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .logo-text span { color: var(--primary); }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.15s;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+
+    .nav-item:hover { background: var(--surface-hover); color: var(--text); }
+    .nav-item.active { background: var(--primary-glow); color: var(--primary); font-weight: 600; }
+    .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .chain-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .chain-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+    }
+
+    .main {
+      padding: 32px;
+      overflow-y: auto;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .page-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: border-color 0.15s;
+    }
+
+    .stat-card:hover { border-color: var(--primary); }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .stat-change { font-size: 12px; margin-top: 4px; }
+    .stat-change.up { color: var(--success); }
+    .stat-change.down { color: var(--danger); }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .card-title { font-size: 16px; font-weight: 600; }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .table th {
+      text-align: left;
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table td {
+      padding: 14px 12px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table tr:last-child td { border-bottom: none; }
+    .table tr:hover td { background: var(--surface-hover); }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .badge-success { background: rgba(16, 185, 129, 0.12); color: var(--success); }
+    .badge-warning { background: rgba(245, 158, 11, 0.12); color: var(--warning); }
+    .badge-danger { background: rgba(239, 68, 68, 0.12); color: var(--danger); }
+    .badge-info { background: rgba(59, 130, 246, 0.12); color: var(--primary); }
+
+    .hash {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      background: rgba(255,255,255,0.04);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .activity-item {
+      display: flex;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .activity-item:last-child { border-bottom: none; }
+
+    .activity-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+
+    .activity-dot.vitals { background: var(--primary); }
+    .activity-dot.alert { background: var(--danger); }
+    .activity-dot.care { background: var(--success); }
+    .activity-dot.drug { background: var(--warning); }
+
+    .activity-text { font-size: 14px; }
+    .activity-time { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+    .consent-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .consent-item:last-child { border-bottom: none; }
+    .consent-scope { font-size: 13px; font-weight: 600; }
+    .consent-meta { font-size: 12px; color: var(--text-dim); }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn:hover { border-color: var(--primary); color: var(--primary); }
+
+    .btn-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover { background: #2563eb; border-color: #2563eb; color: white; }
+
+    .arch-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 28px 0;
+      flex-wrap: wrap;
+    }
+
+    .arch-node {
+      background: var(--surface-hover);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 20px;
+      text-align: center;
+      min-width: 120px;
+    }
+
+    .arch-node-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .arch-node-name { font-size: 14px; font-weight: 600; margin-top: 4px; }
+    .arch-arrow { color: var(--text-dim); font-size: 18px; }
+    .arch-node.highlight { border-color: var(--primary); background: var(--primary-glow); }
+
+    @media (max-width: 1024px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 768px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .stats-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-icon">+</div>
+        <div class="logo-text">Web3 <span>Health</span></div>
+      </div>
+
+      <button class="nav-item active" data-page="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" data-page="records">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Health Records
+      </button>
+      <button class="nav-item" data-page="consents">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Consent Manager
+      </button>
+      <button class="nav-item" data-page="architecture">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Architecture
+      </button>
+
+      <div class="sidebar-footer">
+        <div class="chain-badge">
+          <div class="chain-dot"></div>
+          EVM Chain Connected
+        </div>
+        <div class="chain-badge" style="color: var(--text-dim)">
+          Agent: 0xf39F...2266
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- Dashboard Page -->
+      <div id="page-dashboard">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Patient Dashboard</h1>
+            <p class="page-subtitle">Real-time health monitoring with on-chain integrity proofs</p>
+          </div>
+          <button class="btn btn-primary" id="anchor-btn">Anchor New Record</button>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Patients</div>
+            <div class="stat-value">3</div>
+            <div class="stat-change up">Active monitoring</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Records Anchored</div>
+            <div class="stat-value" id="stat-records">47</div>
+            <div class="stat-change up">+12 this week</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active Alerts</div>
+            <div class="stat-value" style="color: var(--danger)">2</div>
+            <div class="stat-change down">Requires attention</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Consent Grants</div>
+            <div class="stat-value">8</div>
+            <div class="stat-change up">All valid</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Recent Activity</h3>
+              <button class="btn">View All</button>
+            </div>
+            <div id="activity-feed">
+              <div class="activity-item">
+                <div class="activity-dot alert"></div>
+                <div>
+                  <div class="activity-text">SEVERE: Warfarin-Aspirin interaction detected for Wang</div>
+                  <div class="activity-time">2 min ago &middot; Block #18,342,891</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot vitals"></div>
+                <div>
+                  <div class="activity-text">Blood pressure WARNING: 165/95 mmHg &mdash; rising trend +12.3%</div>
+                  <div class="activity-time">15 min ago &middot; Block #18,342,887</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot care"></div>
+                <div>
+                  <div class="activity-text">Care plan generated for patient Chen (daily monitoring)</div>
+                  <div class="activity-time">1 hr ago &middot; Block #18,342,850</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot drug"></div>
+                <div>
+                  <div class="activity-text">Drug interaction check: Metformin + Lisinopril &mdash; MODERATE</div>
+                  <div class="activity-time">3 hr ago &middot; Block #18,342,790</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot vitals"></div>
+                <div>
+                  <div class="activity-text">Heart rate NORMAL: 72 bpm for patient Li</div>
+                  <div class="activity-time">5 hr ago &middot; Block #18,342,745</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Active Consents</h3>
+              <button class="btn">Manage</button>
+            </div>
+            <div class="consent-item">
+              <div>
+                <div class="consent-scope">Dr. Zhang &mdash; ALL Scopes</div>
+                <div class="consent-meta">Primary care physician &middot; No expiry</div>
+              </div>
+              <span class="badge badge-success">Active</span>
+            </div>
+            <div class="consent-item">
+              <div>
+                <div class="consent-scope">AI Health Agent &mdash; Vitals + Alerts</div>
+                <div class="consent-meta">Automated monitoring &middot; Expires in 29 days</div>
+              </div>
+              <span class="badge badge-success">Active</span>
+            </div>
+            <div class="consent-item">
+              <div>
+                <div class="consent-scope">Pharmacy Bot &mdash; Drug Interactions</div>
+                <div class="consent-meta">Medication safety &middot; Expires in 14 days</div>
+              </div>
+              <span class="badge badge-warning">Expiring</span>
+            </div>
+            <div class="consent-item">
+              <div>
+                <div class="consent-scope">Emergency Protocol &mdash; ALL</div>
+                <div class="consent-meta">Emergency override &middot; 72hr window</div>
+              </div>
+              <span class="badge badge-danger">Expired</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Records Page -->
+      <div id="page-records" style="display:none">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Health Records</h1>
+            <p class="page-subtitle">Tamper-proof on-chain health data registry</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Index</th>
+                <th>Type</th>
+                <th>Data Hash</th>
+                <th>Submitted By</th>
+                <th>Timestamp</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>#46</td>
+                <td><span class="badge badge-danger">ALERT</span></td>
+                <td><code class="hash">0x7a3f...e291</code></td>
+                <td><code class="hash">0xf39F...2266</code></td>
+                <td>2026-04-12 08:15</td>
+                <td><span class="badge badge-success">Verified</span></td>
+              </tr>
+              <tr>
+                <td>#45</td>
+                <td><span class="badge badge-info">VITALS</span></td>
+                <td><code class="hash">0x2b8c...f104</code></td>
+                <td><code class="hash">0xf39F...2266</code></td>
+                <td>2026-04-12 08:00</td>
+                <td><span class="badge badge-success">Verified</span></td>
+              </tr>
+              <tr>
+                <td>#44</td>
+                <td><span class="badge badge-warning">DRUG_INTERACTION</span></td>
+                <td><code class="hash">0x91d4...a8b7</code></td>
+                <td><code class="hash">0xf39F...2266</code></td>
+                <td>2026-04-12 07:45</td>
+                <td><span class="badge badge-success">Verified</span></td>
+              </tr>
+              <tr>
+                <td>#43</td>
+                <td><span class="badge badge-success">CARE_PLAN</span></td>
+                <td><code class="hash">0x4e7b...c3d9</code></td>
+                <td><code class="hash">0x7099...7d4e</code></td>
+                <td>2026-04-12 06:30</td>
+                <td><span class="badge badge-success">Verified</span></td>
+              </tr>
+              <tr>
+                <td>#42</td>
+                <td><span class="badge badge-info">VITALS</span></td>
+                <td><code class="hash">0xbc23...7f55</code></td>
+                <td><code class="hash">0xf39F...2266</code></td>
+                <td>2026-04-11 22:00</td>
+                <td><span class="badge badge-success">Verified</span></td>
+              </tr>
+              <tr>
+                <td>#41</td>
+                <td><span class="badge badge-info">LAB_RESULT</span></td>
+                <td><code class="hash">0x58a1...d092</code></td>
+                <td><code class="hash">0x7099...7d4e</code></td>
+                <td>2026-04-11 14:00</td>
+                <td><span class="badge badge-success">Verified</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Consents Page -->
+      <div id="page-consents" style="display:none">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Consent Manager</h1>
+            <p class="page-subtitle">Patient-controlled data access with on-chain consent tracking</p>
+          </div>
+          <button class="btn btn-primary">Grant New Consent</button>
+        </div>
+
+        <div class="card">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Provider</th>
+                <th>Scope</th>
+                <th>Purpose</th>
+                <th>Granted</th>
+                <th>Expires</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Dr. Zhang (0x7099...7d4e)</td>
+                <td><span class="badge badge-info">ALL</span></td>
+                <td>Primary care physician</td>
+                <td>2026-03-01</td>
+                <td>No expiry</td>
+                <td><span class="badge badge-success">Active</span></td>
+              </tr>
+              <tr>
+                <td>AI Health Agent (0xf39F...2266)</td>
+                <td><span class="badge badge-info">VITALS</span> <span class="badge badge-danger">ALERT</span></td>
+                <td>Automated monitoring</td>
+                <td>2026-04-01</td>
+                <td>2026-05-01</td>
+                <td><span class="badge badge-success">Active</span></td>
+              </tr>
+              <tr>
+                <td>Pharmacy Bot (0x3C44...93e8)</td>
+                <td><span class="badge badge-warning">DRUG_INTERACTION</span></td>
+                <td>Medication safety checks</td>
+                <td>2026-04-05</td>
+                <td>2026-04-19</td>
+                <td><span class="badge badge-warning">Expiring</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Architecture Page -->
+      <div id="page-architecture" style="display:none">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">System Architecture</h1>
+            <p class="page-subtitle">AI Agent + MCP Server + Blockchain integrity layer</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Data Flow</h3>
+          </div>
+          <div class="arch-flow">
+            <div class="arch-node">
+              <div class="arch-node-label">Source</div>
+              <div class="arch-node-name">Patient Vitals</div>
+            </div>
+            <div class="arch-arrow">&rarr;</div>
+            <div class="arch-node highlight">
+              <div class="arch-node-label">Processing</div>
+              <div class="arch-node-name">MCP Server</div>
+            </div>
+            <div class="arch-arrow">&rarr;</div>
+            <div class="arch-node highlight">
+              <div class="arch-node-label">Agent</div>
+              <div class="arch-node-name">AI Health Agent</div>
+            </div>
+            <div class="arch-arrow">&rarr;</div>
+            <div class="arch-node">
+              <div class="arch-node-label">Integrity</div>
+              <div class="arch-node-name">On-Chain Hash</div>
+            </div>
+            <div class="arch-arrow">&rarr;</div>
+            <div class="arch-node">
+              <div class="arch-node-label">Storage</div>
+              <div class="arch-node-name">IPFS (encrypted)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Smart Contracts</h3>
+            </div>
+            <div class="consent-item">
+              <div>
+                <div class="consent-scope">HealthDataRegistry.sol</div>
+                <div class="consent-meta">Anchors keccak256 hashes of health data on-chain. Supports VITALS, DRUG_INTERACTION, CARE_PLAN, LAB_RESULT, and ALERT record types.</div>
+              </div>
+            </div>
+            <div class="consent-item">
+              <div>
+                <div class="consent-scope">ConsentManager.sol</div>
+                <div class="consent-meta">Patient-controlled consent with scoped permissions, time-based expiry, and revocation. Supports ALL scope for full access grants.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">MCP Tools (6 Tools)</h3>
+            </div>
+            <div class="consent-item">
+              <div>
+                <div class="consent-scope">check_drug_interactions</div>
+                <div class="consent-meta">Detects SEVERE/MODERATE drug interactions with clinical evidence</div>
+              </div>
+            </div>
+            <div class="consent-item">
+              <div>
+                <div class="consent-scope">analyze_vitals</div>
+                <div class="consent-meta">Blood pressure, heart rate, glucose, SpO2 trend analysis</div>
+              </div>
+            </div>
+            <div class="consent-item">
+              <div>
+                <div class="consent-scope">generate_care_plan</div>
+                <div class="consent-meta">Comprehensive care plans with medication schedules</div>
+              </div>
+            </div>
+            <div class="consent-item">
+              <div>
+                <div class="consent-scope">search_drugs &middot; get_vital_ranges &middot; generate_synthetic_patient</div>
+                <div class="consent-meta">Supporting tools for drug lookup, reference ranges, and test data</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Test Results</h3>
+          </div>
+          <div class="stats-row" style="margin-bottom:0">
+            <div class="stat-card">
+              <div class="stat-label">MCP Server Tests</div>
+              <div class="stat-value" style="color: var(--success)">21/21</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Smart Contract Tests</div>
+              <div class="stat-value" style="color: var(--success)">47/47</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Integration Tests</div>
+              <div class="stat-value" style="color: var(--success)">4/4</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Total Coverage</div>
+              <div class="stat-value" style="color: var(--success)">72/72</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Navigation
+    document.querySelectorAll('.nav-item').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var page = this.getAttribute('data-page');
+        document.querySelectorAll('[id^="page-"]').forEach(function(el) {
+          el.style.display = 'none';
+        });
+        document.getElementById('page-' + page).style.display = 'block';
+        document.querySelectorAll('.nav-item').forEach(function(el) {
+          el.classList.remove('active');
+        });
+        this.classList.add('active');
+      });
+    });
+
+    // Anchor simulation
+    document.getElementById('anchor-btn').addEventListener('click', function() {
+      var hash = '0x' + Array.from({length: 8}, function() {
+        return Math.floor(Math.random() * 16).toString(16);
+      }).join('') + '...';
+
+      var feed = document.getElementById('activity-feed');
+      var item = document.createElement('div');
+      item.className = 'activity-item';
+
+      var dot = document.createElement('div');
+      dot.className = 'activity-dot vitals';
+      item.appendChild(dot);
+
+      var content = document.createElement('div');
+      var text = document.createElement('div');
+      text.className = 'activity-text';
+      text.textContent = 'New vitals anchored on-chain: ' + hash;
+      content.appendChild(text);
+
+      var time = document.createElement('div');
+      time.className = 'activity-time';
+      time.textContent = 'Just now \u00b7 Block #18,342,900';
+      content.appendChild(time);
+
+      item.appendChild(content);
+      feed.insertBefore(item, feed.firstChild);
+
+      var count = document.getElementById('stat-records');
+      count.textContent = parseInt(count.textContent) + 1;
+    });
+  </script>
+</body>
+</html>
